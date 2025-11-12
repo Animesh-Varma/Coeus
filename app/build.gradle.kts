@@ -5,15 +5,13 @@ plugins {
 }
 
 android {
-    namespace = "coeus.animeshvarma.dev"
-    compileSdk {
-        version = release(36)
-    }
+    namespace = "dev.animeshvarma.coeus"
+    compileSdk = 35
 
     defaultConfig {
-        applicationId = "coeus.animeshvarma.dev"
+        applicationId = "dev.animeshvarma.coeus"
         minSdk = 26
-        targetSdk = 36
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0"
 
@@ -38,6 +36,7 @@ android {
     }
     buildFeatures {
         compose = true
+        viewBinding = true
     }
 }
 
@@ -50,6 +49,17 @@ dependencies {
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
+    
+    // ViewModel
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
+    
+    // Coroutines
+    implementation(libs.kotlinx.coroutines.core)
+    implementation(libs.kotlinx.coroutines.android)
+    
+    // NFC
+    implementation(libs.androidx.nfc)
+    
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

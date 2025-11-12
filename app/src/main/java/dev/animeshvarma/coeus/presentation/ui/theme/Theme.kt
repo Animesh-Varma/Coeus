@@ -1,4 +1,4 @@
-package coeus.animeshvarma.dev.ui.theme
+package dev.animeshvarma.coeus.presentation.ui.theme
 
 import android.app.Activity
 import android.os.Build
