@@ -57,8 +57,7 @@ dependencies {
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.coroutines.android)
     
-    // NFC
-    implementation(libs.androidx.nfc)
+
     
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
