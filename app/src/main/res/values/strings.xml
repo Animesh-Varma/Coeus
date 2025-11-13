@@ -1,3 +1,12 @@
 <resources>
     <string name="app_name">Coeus</string>
+    <string name="waiting_for_nfc_tag">Waiting for NFC tag...</string>
+    <string name="clear">Clear</string>
+    <string name="nfc_not_supported">NFC is not supported on this device</string>
+    <string name="please_enable_nfc">Please enable NFC in settings</string>
+    <string name="nfc_disabled_message">NFC is available but disabled. Please enable NFC in settings.</string>
+    <string name="nfc_not_supported_message">NFC is not supported on this device.</string>
+    <string name="error_setting_up_nfc">Error setting up NFC: %1$s</string>
+    <string name="no_tag_found">No tag found in intent</string>
+    <string name="error_processing_nfc_tag">Error processing NFC tag: %1$s</string>
 </resources>

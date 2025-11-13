@@ -6,6 +6,8 @@ import android.content.Intent
 import android.nfc.NfcAdapter
 import android.nfc.Tag
 import android.nfc.tech.IsoDep
+import android.nfc.tech.Ndef
+import android.os.Build
 import android.os.Bundle
 import android.os.VibrationEffect
 import android.os.Vibrator
@@ -14,11 +16,13 @@ import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import dev.animeshvarma.coeus.R
 import dev.animeshvarma.coeus.data.NfcManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import timber.log.Timber
 
 /**
  * MainActivity implementing NFC foreground dispatch system
@@ -47,7 +51,7 @@ class MainActivity : AppCompatActivity() {
 
         // Create TextView for output
         outputTextView = TextView(this).apply {
-            text = "Waiting for NFC tag..."
+            text = getString(R.string.waiting_for_nfc_tag)
             textSize = 16f
             setSingleLine(false)
             setLines(10)
@@ -56,9 +60,9 @@ class MainActivity : AppCompatActivity() {
 
         // Create Clear button
         clearButton = Button(this).apply {
-            text = "Clear"
+            text = getString(R.string.clear)
             setOnClickListener {
-                outputTextView.text = "Waiting for NFC tag..."
+                outputTextView.text = getString(R.string.waiting_for_nfc_tag)
             }
         }
 
@@ -76,7 +80,13 @@ class MainActivity : AppCompatActivity() {
         nfcAdapter = NfcAdapter.getDefaultAdapter(this)
 
         // Initialize vibrator for haptic feedback
-        vibrator = getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+        vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val vibratorManager = getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as android.os.VibratorManager
+            vibratorManager.defaultVibrator
+        } else {
+            @Suppress("DEPRECATION")
+            getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+        }
 
         // Create pending intent for foreground dispatch
         // Using immutable flag for Android API 31+ compatibility
@@ -90,7 +100,7 @@ class MainActivity : AppCompatActivity() {
 
         // Check if NFC is available
         if (nfcAdapter == null) {
-            Toast.makeText(this, "NFC is not supported on this device", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, getString(R.string.nfc_not_supported), Toast.LENGTH_LONG).show()
             return
         }
     }
@@ -110,13 +120,13 @@ class MainActivity : AppCompatActivity() {
             }
             dev.animeshvarma.coeus.data.NfcAvailabilityStatus.DISABLED -> {
                 // NFC is available but disabled, show user a message
-                updateOutput("NFC is available but disabled. Please enable NFC in settings.")
-                Toast.makeText(this, "Please enable NFC in settings", Toast.LENGTH_LONG).show()
+                updateOutput(getString(R.string.nfc_disabled_message))
+                Toast.makeText(this, getString(R.string.please_enable_nfc), Toast.LENGTH_LONG).show()
             }
             dev.animeshvarma.coeus.data.NfcAvailabilityStatus.NOT_SUPPORTED -> {
                 // NFC is not supported on this device
-                updateOutput("NFC is not supported on this device.")
-                Toast.makeText(this, "NFC is not supported on this device", Toast.LENGTH_LONG).show()
+                updateOutput(getString(R.string.nfc_not_supported_message))
+                Toast.makeText(this, getString(R.string.nfc_not_supported), Toast.LENGTH_LONG).show()
             }
         }
     }
@@ -151,8 +161,8 @@ class MainActivity : AppCompatActivity() {
             // Enable foreground dispatch with all filters and tech lists
             nfcAdapter.enableForegroundDispatch(this, pendingIntent, intentFilters, techLists)
         } catch (e: Exception) {
-            Log.e("NFC", "Error enabling foreground dispatch: ${e.message}", e)
-            Toast.makeText(this, "Error setting up NFC: ${e.message}", Toast.LENGTH_SHORT).show()
+            Timber.e(e, "Error enabling foreground dispatch: ${e.message}")
+            Toast.makeText(this, getString(R.string.error_setting_up_nfc, e.message), Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -164,9 +174,9 @@ class MainActivity : AppCompatActivity() {
         super.onPause()
         try {
             // Disable foreground dispatch to prevent conflicts
-            nfcAdapter?.disableForegroundDispatch(this)
+            nfcAdapter.disableForegroundDispatch(this)
         } catch (e: Exception) {
-            Log.e("NFC", "Error disabling foreground dispatch: ${e.message}", e)
+            Timber.e(e, "Error disabling foreground dispatch: ${e.message}")
         }
     }
 
@@ -181,10 +191,10 @@ class MainActivity : AppCompatActivity() {
 
         // Log which action triggered this intent
         when (intent.action) {
-            NfcAdapter.ACTION_NDEF_DISCOVERED -> Log.d("NFC", "ACTION_NDEF_DISCOVERED triggered")
-            NfcAdapter.ACTION_TECH_DISCOVERED -> Log.d("NFC", "ACTION_TECH_DISCOVERED triggered")
-            NfcAdapter.ACTION_TAG_DISCOVERED -> Log.d("NFC", "ACTION_TAG_DISCOVERED triggered")
-            else -> Log.d("NFC", "Unknown NFC action: ${intent.action}")
+            NfcAdapter.ACTION_NDEF_DISCOVERED -> Timber.d("ACTION_NDEF_DISCOVERED triggered")
+            NfcAdapter.ACTION_TECH_DISCOVERED -> Timber.d("ACTION_TECH_DISCOVERED triggered")
+            NfcAdapter.ACTION_TAG_DISCOVERED -> Timber.d("ACTION_TAG_DISCOVERED triggered")
+            else -> Timber.d("Unknown NFC action: ${intent.action}")
         }
 
         // Launch coroutine to handle NFC tag processing
@@ -201,22 +211,31 @@ class MainActivity : AppCompatActivity() {
         try {
             // Provide haptic feedback when tag is detected
             withContext(Dispatchers.Main) {
-                if (vibrator.hasVibrator()) {
-                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    // Check if the vibrator has amplitude control for better feedback
+                    if (vibrator.hasVibrator()) {
                         vibrator.vibrate(VibrationEffect.createOneShot(100, VibrationEffect.DEFAULT_AMPLITUDE))
-                    } else {
+                    }
+                } else {
+                    @Suppress("DEPRECATION")
+                    if (vibrator.hasVibrator()) {
                         vibrator.vibrate(100)
                     }
                 }
             }
 
             // Extract the tag object from the intent
-            val tag = intent.getParcelableExtra<Tag>(NfcAdapter.EXTRA_TAG)
+            val tag = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                intent.getParcelableExtra(NfcAdapter.EXTRA_TAG, Tag::class.java)
+            } else {
+                @Suppress("DEPRECATION")
+                intent.getParcelableExtra(NfcAdapter.EXTRA_TAG) as? Tag
+            }
 
             // Null safety check for the tag
             if (tag == null) {
                 withContext(Dispatchers.Main) {
-                    updateOutput("No tag found in intent")
+                    updateOutput(getString(R.string.no_tag_found))
                 }
                 return@withContext
             }
@@ -229,11 +248,11 @@ class MainActivity : AppCompatActivity() {
                 updateOutput(result)
             }
         } catch (e: Exception) {
-            Log.e("NFC", "Error processing NFC tag: ${e.message}", e)
+            Timber.e(e, "Error processing NFC tag: ${e.message}")
 
             // Update UI with error message on the main thread
             withContext(Dispatchers.Main) {
-                updateOutput("Error processing NFC tag: ${e.message}")
+                updateOutput(getString(R.string.error_processing_nfc_tag, e.message))
             }
         }
     }
@@ -272,7 +291,6 @@ class MainActivity : AppCompatActivity() {
                         val records = ndefMessage.records
                         records.forEachIndexed { index, record ->
                             val payload = String(record.payload)
-                            val type = String(record.type)
                             output.append("Record $index: Type=${String(record.type)}, Payload=$payload\n")
                         }
                     } else {
@@ -281,7 +299,7 @@ class MainActivity : AppCompatActivity() {
                     it.close()
                 }
             } catch (e: Exception) {
-                Log.e("NFC", "Error reading NDEF: ${e.message}", e)
+               Timber.e(e, "Error reading NDEF: ${e.message}")
                 output.append("Error reading NDEF: ${e.message}\n")
             }
         }
@@ -310,7 +328,7 @@ class MainActivity : AppCompatActivity() {
                     it.close()
                 }
             } catch (e: Exception) {
-                Log.e("NFC", "Error with IsoDep communication: ${e.message}", e)
+               Timber.e(e, "Error with IsoDep communication: ${e.message}")
                 output.append("Error with IsoDep communication: ${e.message}\n")
             }
         }
