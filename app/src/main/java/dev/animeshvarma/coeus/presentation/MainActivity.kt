@@ -21,6 +21,7 @@ import dev.animeshvarma.coeus.data.NfcManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import timber.log.Timber
 
@@ -307,9 +308,32 @@ class MainActivity : AppCompatActivity() {
         // Process IsoDep technology (for direct communication)
         if (techList.contains("android.nfc.tech.IsoDep")) {
             try {
-                val isoDep = android.nfc.tech.IsoDep.get(tag)
-                isoDep?.let {
-                    it.connect()
+                val tagConnectionManager = dev.animeshvarma.coeus.data.TagConnectionManager(tag)
+
+                // First connect to the tag
+                val connectResult = runBlocking(Dispatchers.IO) {
+                    tagConnectionManager.connect()
+                }
+
+                if (connectResult is dev.animeshvarma.coeus.data.Result.Success) {
+                    // Get detailed tag info including ATS
+                    val tagInfoResult = runBlocking(Dispatchers.IO) {
+                        tagConnectionManager.getTagInfo()
+                    }
+
+                    when (tagInfoResult) {
+                        is dev.animeshvarma.coeus.data.Result.Success -> {
+                            val tagInfo = tagInfoResult.data
+                            output.append("Tag Details:\n")
+                            output.append("Type: ${tagInfo.tagType}\n")
+                            output.append("Historical Bytes: ${tagInfo.historicalBytes ?: "N/A"}\n")
+                            output.append("ATS (Answer To Select): ${tagInfo.ats ?: "N/A"}\n\n")
+                        }
+                        is dev.animeshvarma.coeus.data.Result.Error -> {
+                            Timber.e("Error getting tag info: ${tagInfoResult.message}")
+                            output.append("Tag Details Error: ${tagInfoResult.message}\n\n")
+                        }
+                    }
 
                     // Send a SELECT command (00 A4 04 00) to select the root application
                     val selectCommand = byteArrayOf(
@@ -319,16 +343,33 @@ class MainActivity : AppCompatActivity() {
                         0x00.toByte()   // P2: first or only occurrence
                     )
 
-                    output.append("\nIsoDep Communication:\n")
+                    output.append("IsoDep Communication:\n")
                     output.append("Sending SELECT command: ${formatBytes(selectCommand)}\n")
 
-                    val response = it.transceive(selectCommand)
-                    output.append("Response: ${formatBytes(response)}\n")
+                    val transceiveResult = runBlocking(Dispatchers.IO) {
+                        tagConnectionManager.transceive(selectCommand)
+                    }
 
-                    it.close()
+                    when (transceiveResult) {
+                        is dev.animeshvarma.coeus.data.Result.Success -> {
+                            output.append("Response: ${formatBytes(transceiveResult.data)}\n")
+                        }
+                        is dev.animeshvarma.coeus.data.Result.Error -> {
+                            output.append("Transceive Error: ${transceiveResult.message}\n")
+                        }
+                    }
+                } else {
+                    // If connection failed, provide error message
+                    val errorMessage = when (connectResult) {
+                        is dev.animeshvarma.coeus.data.Result.Error -> connectResult.message
+                        else -> "Unknown connection error"
+                    }
+                    output.append("Failed to connect to tag: $errorMessage\n")
                 }
+
+                tagConnectionManager.close()
             } catch (e: Exception) {
-               Timber.e(e, "Error with IsoDep communication: ${e.message}")
+                Timber.e(e, "Error with IsoDep communication: ${e.message}")
                 output.append("Error with IsoDep communication: ${e.message}\n")
             }
         }

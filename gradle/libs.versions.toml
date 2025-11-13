@@ -42,6 +42,8 @@ androidx-lifecycle-viewmodel = { group = "androidx.lifecycle", name = "lifecycle
 hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt" }
 hilt-compiler = { group = "com.google.dagger", name = "hilt-compiler", version.ref = "hilt" }
 timber = { group = "com.jakewharton.timber", name = "timber", version.ref = "timber" }
+mockito-core = { group = "org.mockito", name = "mockito-core", version = "5.0.0" }
+mockito-inline = { group = "org.mockito", name = "mockito-inline", version = "5.0.0" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
