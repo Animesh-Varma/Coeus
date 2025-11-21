@@ -1,4 +1,4 @@
-# Coeus
+# Coeus (Dummey Readme)
 
 Coeus is an Android application for sending NFC APDU commands, named after the Greek Titan of intellect.
 
