@@ -1,8 +1,7 @@
 package dev.animeshvarma.coeus
 
 import android.nfc.Tag
-import android.nfc.tech.IsoDep
-import android.nfc.tech.Ndef
+import android.nfc.tech.*
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.animeshvarma.coeus.model.AppScreen
@@ -33,38 +32,60 @@ class CoeusViewModel : ViewModel() {
         _uiState.update { it.copy(isScanning = true, lastScannedTag = null, error = null) }
     }
 
-    // --- NFC LOGIC ---
     fun onTagDiscovered(tag: Tag) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                // Reset state
                 _uiState.update { it.copy(isScanning = true) }
 
                 val uid = tag.id.joinToString(":") { "%02X".format(it) }
                 val techs = tag.techList.map { it.substringAfterLast(".") }
                 val details = mutableMapOf<String, String>()
 
-                // 1. ISO-DEP (Type 4 / Credit Cards)
+                // [NEW] Detailed Extraction Logic
+
+                // 1. Low Level Info (NfcA)
+                if (techs.contains("NfcA")) {
+                    val nfcA = NfcA.get(tag)
+                    details["ATQA"] = nfcA.atqa.joinToString("") { "%02X".format(it) }
+                    details["SAK"] = "%02X".format(nfcA.sak)
+                    details["Max Transceive"] = "${nfcA.maxTransceiveLength} bytes"
+                }
+
+                // 2. Mifare Classic
+                if (techs.contains("MifareClassic")) {
+                    val mifare = MifareClassic.get(tag)
+                    val typeStr = when(mifare.type) {
+                        MifareClassic.TYPE_CLASSIC -> "Classic"
+                        MifareClassic.TYPE_PLUS -> "Plus"
+                        MifareClassic.TYPE_PRO -> "Pro"
+                        else -> "Unknown"
+                    }
+                    details["Mifare Type"] = typeStr
+                    details["Size"] = "${mifare.size} bytes"
+                    details["Sectors"] = "${mifare.sectorCount}"
+                    details["Blocks"] = "${mifare.blockCount}"
+                }
+
+                // 3. ISO-DEP (Cards/Passports)
                 if (techs.contains("IsoDep")) {
                     val isoDep = IsoDep.get(tag)
                     isoDep?.use {
                         it.connect()
                         details["Standard"] = "ISO 14443-4"
-                        details["Max Transceive"] = "${it.maxTransceiveLength} bytes"
                         it.historicalBytes?.let { hb ->
                             details["Historical Bytes"] = hb.joinToString(" ") { b -> "%02X".format(b) }
                         }
                     }
                 }
 
-                // 2. NDEF (Formatted Data)
+                // 4. NDEF
                 if (techs.contains("Ndef")) {
                     val ndef = Ndef.get(tag)
                     ndef?.use {
                         it.connect()
                         details["NDEF Type"] = it.type
-                        details["Max Size"] = "${it.maxSize} bytes"
-                        details["Writable"] = it.isWritable.toString()
+                        details["Writable"] = if(it.isWritable) "Yes" else "No (Read-only)"
+                        details["Capacity"] = "${it.maxSize} bytes"
                     }
                 }
 

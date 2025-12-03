@@ -1,12 +1,15 @@
 package dev.animeshvarma.coeus.model
 
-// --- Navigation Enums ---
 enum class AppScreen(val title: String) {
-    GENERAL("General"),
+    HOME("Home"),
     ENCRYPTED("Encrypted"),
     RELAY("Relay"),
     COMMAND("Command"),
     DONATE("Donate"),
+
+    // [FIX] Added missing DOCS entry
+    DOCS("Docs/Release Notes"),
+
     CONFIG("Config"),
     SETTINGS("Settings")
 }
@@ -15,7 +18,6 @@ enum class GeneralTab {
     READ, WRITE, OTHER
 }
 
-// --- Data Models ---
 data class NfcCardData(
     val uid: String,
     val techList: List<String>,
@@ -23,17 +25,10 @@ data class NfcCardData(
     val timestamp: Long = System.currentTimeMillis()
 )
 
-// --- State Management ---
 data class UiState(
-    val currentScreen: AppScreen = AppScreen.GENERAL,
+    val currentScreen: AppScreen = AppScreen.HOME,
     val generalTab: GeneralTab = GeneralTab.READ,
-
-    // NFC State
     val isScanning: Boolean = true,
     val lastScannedTag: NfcCardData? = null,
-    val error: String? = null,
-
-    // Logs/Debug
-    val logs: List<String> = emptyList(),
-    val showLogsDialog: Boolean = false
+    val error: String? = null
 )

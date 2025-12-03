@@ -1,22 +1,31 @@
 package dev.animeshvarma.coeus.ui.screens
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Contactless
+import androidx.compose.material.icons.filled.Fingerprint
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Nfc
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import dev.animeshvarma.coeus.model.NfcCardData
+import dev.animeshvarma.coeus.ui.components.bouncyClick
+import dev.animeshvarma.coeus.ui.theme.AnimationConfig
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @Composable
 fun ReadScreen(
@@ -35,10 +44,9 @@ fun ReadScreen(
                 Box(
                     modifier = Modifier
                         .size(120.dp)
-                        .background(MaterialTheme.colorScheme.secondaryContainer, RoundedCornerShape(24.dp)),
+                        .background(MaterialTheme.colorScheme.secondaryContainer, RoundedCornerShape(32.dp)),
                     contentAlignment = Alignment.Center
                 ) {
-                    // You can add Pulse Animation here later if desired
                     Icon(
                         imageVector = Icons.Default.Contactless,
                         contentDescription = "Scanning",
@@ -46,25 +54,47 @@ fun ReadScreen(
                         tint = MaterialTheme.colorScheme.onSecondaryContainer
                     )
                 }
+
                 Spacer(modifier = Modifier.height(24.dp))
-                Text("Waiting for tag...", style = MaterialTheme.typography.titleMedium)
-                Text("Hold device near NFC tag", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+                PulsingDotsText(
+                    baseText = "Waiting for tag",
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+
+                Text(
+                    text = "Hold device near NFC tag",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         } else if (data != null) {
             // RESULT STATE
             Column(modifier = Modifier.fillMaxSize()) {
                 Box(modifier = Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.CenterEnd) {
-                    IconButton(onClick = onReset) { Icon(Icons.Default.Refresh, "Scan Again") }
+                    IconButton(onClick = onReset, modifier = Modifier.bouncyClick(onReset)) {
+                        Icon(Icons.Default.Refresh, "Scan Again")
+                    }
                 }
 
                 LazyColumn(
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    item { ResultCard("UID", data.uid, Icons.Default.Nfc) }
-                    item { ResultCard("Technologies", data.techList.joinToString(", "), Icons.Default.Contactless) }
-                    data.details.forEach { (key, value) ->
-                        item { ResultCard(key, value) }
+                    // UID
+                    item { AnimatedCard(0) { ResultCard("UID", data.uid, Icons.Default.Fingerprint, isCode = true) } }
+
+                    // Tech List
+                    item { AnimatedCard(1) { ResultCard("Technologies", data.techList.joinToString("\n"), Icons.Default.Nfc) } }
+
+                    // Details (Mapped)
+                    val entries = data.details.entries.toList()
+                    itemsIndexed(entries) { index, entry ->
+                        // Offset index by 2 because of the first two hardcoded cards
+                        AnimatedCard(index + 2) {
+                            ResultCard(entry.key, entry.value, Icons.Default.Info, isCode = true)
+                        }
                     }
                 }
             }
@@ -72,8 +102,69 @@ fun ReadScreen(
     }
 }
 
+// [NEW] Text Animation Composable
 @Composable
-fun ResultCard(title: String, content: String, icon: ImageVector? = null) {
+fun PulsingDotsText(
+    baseText: String,
+    style: androidx.compose.ui.text.TextStyle,
+    color: androidx.compose.ui.graphics.Color
+) {
+    var dots by remember { mutableStateOf("") }
+
+    LaunchedEffect(Unit) {
+        while (true) {
+            dots = ""
+            delay(400)
+            dots = "."
+            delay(400)
+            dots = ".."
+            delay(400)
+            dots = "..."
+            delay(400)
+        }
+    }
+
+    // Using a Box to prevent layout jitter when text grows
+    Box(contentAlignment = Alignment.CenterStart) {
+        // Invisible text to reserve max width space
+        Text(text = "$baseText...", style = style, color = androidx.compose.ui.graphics.Color.Transparent)
+        // Visible animated text
+        Text(text = "$baseText$dots", style = style, color = color)
+    }
+}
+
+@Composable
+fun AnimatedCard(index: Int, content: @Composable () -> Unit) {
+    val scale = remember { Animatable(0.9f) }
+    val alpha = remember { Animatable(0f) }
+
+    LaunchedEffect(Unit) {
+        val delayMs = (index * 30L).coerceAtMost(300L)
+
+        delay(delayMs)
+
+        launch {
+            scale.animateTo(
+                1f,
+                spring(dampingRatio = 0.7f, stiffness = AnimationConfig.STIFFNESS)
+            )
+        }
+        launch {
+            alpha.animateTo(1f, spring(stiffness = 1000f))
+        }
+    }
+
+    Box(modifier = Modifier.graphicsLayer {
+        scaleX = scale.value
+        scaleY = scale.value
+        this.alpha = alpha.value
+    }) {
+        content()
+    }
+}
+
+@Composable
+fun ResultCard(title: String, content: String, icon: ImageVector? = null, isCode: Boolean = false) {
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
         modifier = Modifier.fillMaxWidth()
@@ -86,10 +177,10 @@ fun ResultCard(title: String, content: String, icon: ImageVector? = null) {
                 }
                 Text(text = title, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
             }
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = content,
-                style = MaterialTheme.typography.bodyLarge.copy(fontFamily = FontFamily.Monospace),
+                style = if(isCode) MaterialTheme.typography.bodyLarge.copy(fontFamily = FontFamily.Monospace) else MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurface
             )
         }

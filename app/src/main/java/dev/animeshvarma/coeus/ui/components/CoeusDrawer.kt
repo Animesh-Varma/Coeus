@@ -1,9 +1,9 @@
 package dev.animeshvarma.coeus.ui.components
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Article
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -31,28 +31,45 @@ fun CoeusDrawerContent(
             Text("Coeus", fontSize = 20.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
         }
 
-        Column(modifier = Modifier.weight(1f).padding(horizontal = 12.dp)) {
-            DrawerItem("General", Icons.Default.Description, currentScreen == AppScreen.GENERAL) { onScreenSelected(AppScreen.GENERAL) }
+        Column(
+            modifier = Modifier
+                .fillMaxHeight()
+                .padding(horizontal = 12.dp, vertical = 8.dp)
+        ) {
+            // --- TOP SECTION ---
+            DrawerItem("Home", Icons.Default.Home, currentScreen == AppScreen.HOME) { onScreenSelected(AppScreen.HOME) }
             DrawerItem("Encrypted", Icons.Default.EnhancedEncryption, currentScreen == AppScreen.ENCRYPTED) { onScreenSelected(AppScreen.ENCRYPTED) }
             DrawerItem("Relay", Icons.Default.Router, currentScreen == AppScreen.RELAY) { onScreenSelected(AppScreen.RELAY) }
             DrawerItem("Command", Icons.Default.Terminal, currentScreen == AppScreen.COMMAND) { onScreenSelected(AppScreen.COMMAND) }
 
+            Spacer(modifier = Modifier.weight(1f))
+
             HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
 
+            // --- BOTTOM SECTION ---
             DrawerItem("Donate", Icons.Default.VolunteerActivism, currentScreen == AppScreen.DONATE) { onScreenSelected(AppScreen.DONATE) }
+
+            // [FIX] Added Docs/Release Notes
+            DrawerItem("Docs/Release Notes", Icons.AutoMirrored.Filled.Article, currentScreen == AppScreen.DOCS) { onScreenSelected(AppScreen.DOCS) }
+
             DrawerItem("Config", Icons.Default.Tune, currentScreen == AppScreen.CONFIG) { onScreenSelected(AppScreen.CONFIG) }
             DrawerItem("Settings", Icons.Default.Settings, currentScreen == AppScreen.SETTINGS) { onScreenSelected(AppScreen.SETTINGS) }
         }
     }
 }
 
+// DrawerItem composable remains same...
 @Composable
 fun DrawerItem(label: String, icon: ImageVector, isSelected: Boolean, onClick: () -> Unit) {
     val bg = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.1f) else Color.Transparent
     val contentColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
 
     Surface(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp).clip(RoundedCornerShape(12.dp)).clickable(onClick = onClick),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 2.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .bouncyClick(onClick = onClick),
         color = bg
     ) {
         Row(

@@ -37,40 +37,45 @@ fun CoeusApp(
             }
         }
     ) {
-        // [FIX] Apply modifier here to handle system bars
-        Column(
-            modifier = modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background)
-        ) {
-            // HEADER
-            Box(
-                modifier = Modifier.fillMaxWidth().padding(16.dp),
-                contentAlignment = Alignment.Center
+        Scaffold { innerPadding ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
             ) {
-                IconButton(
-                    onClick = { scope.launch { drawerState.open() } },
-                    modifier = Modifier.align(Alignment.CenterStart)
+                // HEADER
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icons.Default.Menu, "Menu")
+                    IconButton(
+                        onClick = { scope.launch { drawerState.open() } },
+                        modifier = Modifier.align(Alignment.CenterStart)
+                    ) {
+                        Icon(Icons.Default.Menu, "Menu")
+                    }
+
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        val title = if (uiState.currentScreen == AppScreen.HOME) "Coeus" else uiState.currentScreen.title
+
+                        Text(
+                            text = title,
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Normal
+                        )
+                        Spacer(Modifier.height(2.dp))
+                        Box(Modifier.width(32.dp).height(2.dp).background(MaterialTheme.colorScheme.primary, CircleShape))
+                    }
                 }
 
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = uiState.currentScreen.title,
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Normal
-                    )
-                    Spacer(Modifier.height(2.dp))
-                    Box(Modifier.width(32.dp).height(2.dp).background(MaterialTheme.colorScheme.primary, CircleShape))
+                // CONTENT
+                when (uiState.currentScreen) {
+                    AppScreen.HOME -> GeneralScreen(viewModel, uiState)
+                    AppScreen.DOCS -> UnderConstruction()
+                    else -> UnderConstruction()
                 }
-            }
-
-            // CONTENT
-            if (uiState.currentScreen == AppScreen.GENERAL) {
-                GeneralScreen(viewModel, uiState)
-            } else {
-                UnderConstruction()
             }
         }
     }
