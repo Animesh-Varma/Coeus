@@ -66,9 +66,11 @@ dependencies {
 
     // Logic
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
+    implementation("org.bouncycastle:bcpkix-jdk15to18:1.79")
 
     // Logging
     implementation("com.jakewharton.timber:timber:5.0.1")
+    implementation(libs.androidx.appcompat)
 
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")

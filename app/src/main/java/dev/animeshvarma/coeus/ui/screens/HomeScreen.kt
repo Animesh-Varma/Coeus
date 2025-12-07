@@ -16,19 +16,19 @@ import androidx.compose.ui.unit.dp
 import dev.animeshvarma.coeus.CoeusViewModel
 import dev.animeshvarma.coeus.model.GeneralTab
 import dev.animeshvarma.coeus.model.UiState
-import dev.animeshvarma.coeus.ui.components.CoeusSegmentedControl // [NEW] Import
+import dev.animeshvarma.coeus.ui.components.CoeusSegmentedControl
 import dev.animeshvarma.coeus.ui.components.UnderConstruction
 import dev.animeshvarma.coeus.ui.theme.AnimationConfig
+import dev.animeshvarma.coeus.ui.screens.ReadScreen
 
 @Composable
-fun GeneralScreen(viewModel: CoeusViewModel, uiState: UiState) {
+fun HomeScreen(viewModel: CoeusViewModel, uiState: UiState) {
     Column {
         // TABS
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.Center
         ) {
-            // [FIX] Use the reusable CoeusSegmentedControl
             CoeusSegmentedControl(
                 items = GeneralTab.values().map { it.name.lowercase().replaceFirstChar { c -> c.uppercase() } },
                 selectedIndex = uiState.generalTab.ordinal,

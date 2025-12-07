@@ -16,7 +16,7 @@ import dev.animeshvarma.coeus.CoeusViewModel
 import dev.animeshvarma.coeus.model.AppScreen
 import dev.animeshvarma.coeus.ui.components.CoeusDrawerContent
 import dev.animeshvarma.coeus.ui.components.UnderConstruction
-import dev.animeshvarma.coeus.ui.screens.GeneralScreen
+import dev.animeshvarma.coeus.ui.screens.HomeScreen
 import kotlinx.coroutines.launch
 
 @Composable
@@ -72,7 +72,7 @@ fun CoeusApp(
 
                 // CONTENT
                 when (uiState.currentScreen) {
-                    AppScreen.HOME -> GeneralScreen(viewModel, uiState)
+                    AppScreen.HOME -> HomeScreen(viewModel, uiState)
                     AppScreen.DOCS -> UnderConstruction()
                     else -> UnderConstruction()
                 }
